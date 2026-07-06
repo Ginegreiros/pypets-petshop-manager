@@ -56,6 +56,9 @@ petshop/
 └── sql/         # Criação/inicialização do banco
 ```
 
+### 🗃️ Modelo de dados
+![Diagrama ER](docs/diagrama-er.png)
+
 ### 📸 Demonstração
 *(em breve — print ou GIF do sistema rodando)*
 
@@ -115,6 +118,9 @@ petshop/
 ├── relatorios/  # Report generation
 └── sql/         # Database creation/initialization
 ```
+
+### 🗃️ Data model
+![ER Diagram](docs/diagrama-er.png)
 
 ### 📸 Demo
 *(coming soon — screenshot or GIF of the system running)*
