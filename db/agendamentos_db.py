@@ -309,3 +309,56 @@ _________________________________________
         if "conexao" in locals() and conexao.is_connected():
             cursor.close()
             conexao.close()
+
+def list_agend_concluidos():
+    """Lista apenas agendamentos com status 'Concluido', para a emissão de nota fiscal de serviço."""
+    print("\n========== AGENDAMENTOS CONCLUÍDOS ==========")
+    try:
+        conexao = obter_conexao()
+        cursor = conexao.cursor()
+
+        cursor.execute("""
+            SELECT 
+                agendamento.id,
+                pet.nome,
+                pet.especie,
+                cliente.nome,
+                agendamento.data_hora,
+                agendamento.status,
+                GROUP_CONCAT(servico.nome SEPARATOR ', ')
+            FROM agendamento
+            INNER JOIN pet ON agendamento.id_pet = pet.id
+            INNER JOIN cliente ON pet.id_cliente = cliente.id
+            INNER JOIN agendamentoservico ON agendamento.id = agendamentoservico.id_agendamento
+            INNER JOIN servico ON agendamentoservico.id_servico = servico.id
+            WHERE agendamento.status = 'Concluido'
+            GROUP BY agendamento.id
+        """)
+
+        agendamentos = cursor.fetchall()
+
+        if not agendamentos:
+            print("Nenhum agendamento concluído no momento.")
+            return
+
+        for agendamento in agendamentos:
+            id_agendamento, nome_pet, especie_pet, nome_cliente, data_hora, status, servicos_nomes = agendamento
+            data_formatada = data_hora.strftime("%d/%m/%Y %H:%M")
+            print(f"""
+_________________________________________
+ID Agendamento: {id_agendamento}
+Pet:            {nome_pet} ({especie_pet})
+Cliente:        {nome_cliente}
+Data/Hora:      {data_formatada}
+Status:         {status}
+Serviços:       {servicos_nomes}        
+_________________________________________
+                  """)
+
+    except mysql.connector.Error as erro:
+        print(f"ERRO FATAL DE CONEXÃO COM O BANCO: {erro}")
+
+    finally:
+        if "conexao" in locals() and conexao.is_connected():
+            cursor.close()
+            conexao.close()

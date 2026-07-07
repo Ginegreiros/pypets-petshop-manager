@@ -54,6 +54,18 @@ try:
     from db.produtos_db import listar_produtos_simples
 except ImportError:
     listar_produtos_simples = None
+
+#=============================
+try:
+    from db.financeiro_db import buscar_nota_fiscal_servico
+except ImportError:
+    buscar_nota_fiscal_servico = None
+
+#=============================
+try:
+    from db.agendamentos_db import list_agend_concluidos
+except ImportError:
+    list_agend_concluidos = None
     
 def menu_financeiro():
     
@@ -81,11 +93,7 @@ def menu_financeiro():
                 break
 
             elif opcao == 1:
-
-                if buscar_nota_fiscal:
-                    exibir_nota_fiscal()
-                else:
-                    print("\n[Aviso] Módulo e Nota Fiscal indisponível.")
+                submenu_nota_fiscal()
 
             elif opcao == 2:
                 if buscar_dados_bi:
@@ -131,6 +139,37 @@ def menu_financeiro():
         except KeyboardInterrupt:
             print("\n[ERRO] Operação interrmpida pelo usuário. Encerrando de forma limpa...")
             sys.exit(0)
+
+def submenu_nota_fiscal():
+    print("""
+    ______________________________
+    |      NOTA FISCAL DE:      |
+    |============================|
+    |  |1| - Produto             |
+    |  |2| - Serviço             |
+    |  |0| - Voltar              |
+    |____________________________|
+    """)
+    try:
+        opcao = int(input("Escolha uma opção: "))
+    except ValueError:
+        print("ERRO: digite um número válido.")
+        return
+
+    if opcao == 1:
+        if buscar_nota_fiscal:
+            exibir_nota_fiscal()
+        else:
+            print("\n[Aviso] Módulo de Nota Fiscal de Produto indisponível.")
+    elif opcao == 2:
+        if buscar_nota_fiscal_servico:
+            exibir_nota_fiscal_servico()
+        else:
+            print("\n[Aviso] Módulo de Nota Fiscal de Serviço indisponível.")
+    elif opcao == 0:
+        return
+    else:
+        print("Opção inválida.")
 
 def exibir_ranking():
 
@@ -288,6 +327,64 @@ VALOR TOTAL DESTA NOTA: R$ {venda[2]:.2f}
         
     except ValueError:
         print("ERRO: ID da venda deve ser um número inteiro.")
+        return
+    
+def exibir_nota_fiscal_servico():
+
+    print("\n === EMISSÃO DE NOTA FISCAL DE SERVIÇO ===")
+
+    if list_agend_concluidos:
+        list_agend_concluidos()  # essa função já imprime a lista sozinha
+    else:
+        print("Aviso: Função de listagem de agendamentos não disponível.")
+        return
+
+    try:
+        id_agendamento = int(input("\nDigite o ID do agendamento: "))
+
+        dados = buscar_nota_fiscal_servico(id_agendamento)
+
+        if not dados:
+            print("\nAgendamento não encontrado.")
+            return
+
+        agendamento = dados["agendamento"]
+        itens = dados["itens"]
+
+        id_ag, data_hora, nome_pet, nome_cliente = agendamento
+
+        # Soma o preço de todos os serviços cobrados, pra achar o total da nota
+        valor_total = sum(item[1] for item in itens)
+
+        # 1. CABEÇALHO ÚNICO (igual ao padrão da nota de produto)
+        print(f"""
+________________________________________
+        NOTA FISCAL DE SERVIÇO
+========================================
+Agendamento ID: {id_ag}
+Data/Hora: {data_hora.strftime('%d/%m/%Y %H:%M')}
+Cliente: {nome_cliente}
+Pet: {nome_pet}
+========================================
+        SERVIÇOS REALIZADOS:""")
+
+        for item in itens:
+            nome_servico = item[0]
+            preco = item[1]
+
+            print(f"""
+Serviço: {nome_servico[:22]:<22}
+Preço: R${preco:>7.2f}
+""")
+
+        print(f"""
+=======================================
+VALOR TOTAL DESTA NOTA: R$ {valor_total:.2f}
+=======================================
+        """)
+
+    except ValueError:
+        print("ERRO: ID do agendamento deve ser um número inteiro.")
         return
     
 def gerar_relatorio_expresso():

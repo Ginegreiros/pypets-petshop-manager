@@ -211,6 +211,73 @@ def buscar_nota_fiscal(id_venda):
             conexao.close()
 
 
+def buscar_nota_fiscal_servico(id_agendamento):
+    """
+    Busca os dados de um agendamento (cliente, pet, data) e os serviços cobrados nele, para montar a nota fiscal de serviços.
+    Equivalente à buscar_nota_fiscal(), só que para Agendamento em vez de Venda.
+    """
+
+    conexao = None
+    cursor = None
+
+    try:
+        conexao = obter_conexao()
+
+        if conexao is None:
+            print("ERRO: nao foi possivel conectar ao banco.")
+            return None
+
+        cursor = conexao.cursor()
+
+        # 1) Busca os dados principais do agendamento (cabeçalho da nota)
+        #    Só busca se o status for 'Concluido' — não emite nota de agendamento
+        #    cancelado ou ainda pendente.
+        cursor.execute("""
+            SELECT
+                agendamento.id,
+                agendamento.data_hora,
+                pet.nome,
+                cliente.nome
+            FROM agendamento
+            INNER JOIN pet ON agendamento.id_pet = pet.id
+            INNER JOIN cliente ON pet.id_cliente = cliente.id
+            WHERE agendamento.id = %s
+            AND agendamento.status = 'Concluido'
+        """, (id_agendamento,))
+
+        agendamento = cursor.fetchone()
+
+        if not agendamento:
+            return None
+
+        # 2) Busca os serviços cobrados nesse agendamento (itens da nota)
+        cursor.execute("""
+            SELECT
+                servico.nome,
+                agendamentoservico.preco_cobrado
+            FROM agendamentoservico
+            INNER JOIN servico ON agendamentoservico.id_servico = servico.id
+            WHERE agendamentoservico.id_agendamento = %s
+        """, (id_agendamento,))
+
+        itens = cursor.fetchall()
+
+        return {
+            "agendamento": agendamento,
+            "itens": itens
+        }
+
+    except Exception as erro:
+        print(f"Erro ao buscar nota fiscal de serviço: {erro}")
+        return None
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conexao and conexao.is_connected():
+            conexao.close()
+
 def buscar_promocoes():
 
     conexao = None
